@@ -5,18 +5,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import tony_auditor.model.AuditEntry;
-
 public class DiffTool {
 
-    public static List<AuditEntry> diff(Object previousState, Object currentState) {
-        List<AuditEntry> changes = new ArrayList<>();
+    public static List<Change> diff(Object previousState, Object currentState) {
+        List<Change> changes = new ArrayList<>();
         compareObjects("", previousState, currentState, changes);
         return changes;
     }
 
     private static void compareObjects(String propertyPath, Object previousState, Object currentState,
-            List<AuditEntry> changes) {
+            List<Change> changes) {
         Class<?> clazz = previousState.getClass();
 
         for (Field field : clazz.getDeclaredFields()) {
@@ -28,7 +26,7 @@ public class DiffTool {
                 Object currentValue = field.get(currentState);
 
                 if (!Objects.equals(previousValue, currentValue)) {
-                    changes.add(new AuditEntry(fieldName, previousValue, currentValue));
+                    changes.add(new Change(fieldName, previousValue, currentValue));
                 }
 
                 if (isListField(field)) {
@@ -47,7 +45,7 @@ public class DiffTool {
     }
 
     private static void compareLists(String propertyPath, List<?> previousList, List<?> currentList,
-            List<AuditEntry> changes) {
+            List<Change> changes) {
         if (!Objects.equals(previousList, currentList)) {
             List<Object> addedItems = new ArrayList<>(currentList);
             addedItems.removeAll(previousList);
@@ -55,8 +53,32 @@ public class DiffTool {
             List<Object> removedItems = new ArrayList<>(previousList);
             removedItems.removeAll(currentList);
 
-            changes.add(new AuditEntry(propertyPath + ".added", addedItems, null));
-            changes.add(new AuditEntry(propertyPath + ".removed", null, removedItems));
+            changes.add(new Change(propertyPath + ".added", addedItems, null));
+            changes.add(new Change(propertyPath + ".removed", null, removedItems));
+        }
+    }
+
+    public static class Change {
+        private final String propertyPath;
+        private final Object previousValue;
+        private final Object currentValue;
+
+        public Change(String propertyPath, Object previousValue, Object currentValue) {
+            this.propertyPath = propertyPath;
+            this.previousValue = previousValue;
+            this.currentValue = currentValue;
+        }
+
+        public String getPropertyPath() {
+            return propertyPath;
+        }
+
+        public Object getPreviousValue() {
+            return previousValue;
+        }
+
+        public Object getCurrentValue() {
+            return currentValue;
         }
     }
 }
